@@ -1,5 +1,5 @@
 [class*="action-bar"] {
-  position: fixed;
+  
   right: 0;
   left: 0;
   z-index: 10;
@@ -8,7 +8,21 @@
   box-sizing: border-box;
 }
 
+.action-bar-no-position {
+  border-bottom: 2px solid #1f1f1f;
+  background-color: #222;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  right: 0;
+  left: 0;
+  z-index: 10;
+  width: 100%;
+  height: 48px;
+  top: 100px;
+  position: fixed;
+}
+
 .action-bar.fixed-top {
+  position: fixed;
 
   top: 0;
 }
