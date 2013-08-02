@@ -7,6 +7,8 @@
   
     <script src="http://10.2.80.141:8080/target/target-script-min.js#anonymous"></script>
 
+     <!-- <script src="http://10.0.0.5:8080/target/target-script-min.js#anonymous"></script> -->
+
     <script type="text/javascript" charset="utf-8" src="js/cordova-1.6.0.js"></script>
     <script type="text/javascript" charset="utf-8" src="js/cdv-plugin-fb-connect.js"></script>
     <script type="text/javascript" charset="utf-8" src="js/facebook_js_sdk.js"></script>
@@ -29,14 +31,12 @@
     
     <link rel="stylesheet" href="css/action-bars.css">
     <link rel="stylesheet" href="css/chevrons.css">
-    <link rel="stylesheet" href="css/tabs.css">
-    
+    <link rel="stylesheet" href="css/tabs.css">    
     <link rel="stylesheet" href="css/buttons.css">
     <link rel="stylesheet" href="css/forms.css">
     <link rel="stylesheet" href="css/lists.css">
     <link rel="stylesheet" href="css/spinners.css">
     <link rel="stylesheet" href="css/icomoon.css">
-    <link rel="stylesheet" href="css/stack.css">
     <link rel="stylesheet" href="css/sliders.css">
     <link rel="stylesheet" href="css/badger.css">
         
@@ -140,8 +140,82 @@
                 $(this).html("Disagreed set");
 
                 localStorage.setItem("answerDisagreeStatuses", answerDisagreeStatuses);
+            });            
+
+            //THIS SECTION IS FOR SHOWING AND HIDING TABS
+            $("#toGame").on("click", function() {
+                console.log("Clicked on toGame");
+
+                storeScrollState();
+
+                //if we're not already here
+                if(currentTab != "Game")
+                {
+                    console.log("Updating game now");
+                    //clear 
+                    $(".content").html("");
+
+                    //check if we have any feedObjects
+                    if(localStorage.getItem("gameFeed"))
+                    {
+                        console.log("Got gamefeed from localstorage");
+                        //now sets the html
+                        //Get the Template from above
+                        var Source = document.getElementById("Game-Handlebars-Template").textContent;                   
+                        //Compile the actual Template file
+                        var Template = Handlebars.compile(Source);                 
+                        //Generate some HTML code from the compiled Template
+                        var HTML = Template({ Data : JSON.parse(localStorage.getItem("gameFeed")) });
+                        console.log("Got html from gamefeed");
+
+                        //Replace the body section with the new code. 
+                        $('.content').append(HTML);
+                        
+                        $("img").lazyload({
+                            //container: $(".content")
+                            event: "scrollstop"
+                        });  
+                        
+                        //the purpose of this is to oad the initial images in view
+                        $(window).resize();
+
+                        //scrolls to the right place
+                        $(window).scrollTop(localStorage.getItem("gameScroll"));
+                    }
+                    else
+                    {
+                        getGameFeed();
+                    }
+                }
+                currentTab = "Game";
+            });
+            $("#toProfile").on("click", function() {
+                console.log("Clicked on toProfile");
+                //clear 
+                $(".content").html("In profile!");
+                currentTab = "Profile";
+            });
+            $("#toTraining").on("click", function() {
+                console.log("Clicked on toTraining");
+                $(".content").html("In training!");
+                currentTab = "Training";
             });
 
+        }
+
+        function storeScrollState() {
+            if(currentTab == "Game")
+            {
+                localStorage.setItem("gameScroll", $(window).scrollTop() );
+            }
+            else if(currentTab == "Profile")
+            {
+                localStorage.setItem("profileScroll", $(window).scrollTop() );
+            }
+            else if(currentTab == "Training")
+            {
+                localStorage.setItem("trainingScroll", $(window).scrollTop() );
+            }
         }
         
         function getUserID() {
@@ -173,10 +247,23 @@
             console.log("going ot get game feed");
             //sets the data for tab0
             gameRequest = $.getJSON( "http://54.214.234.140/data/newgetlistquestions/1256912018/?nocache=" + (new Date).getTime(), function( json ) {                                   
+                //appends to the array in localstorage
+                if(localStorage.getItem("gameFeed"))
+                {
+                    var oldString = localStorage.getItem("gameFeed");
+                    oldString = oldString.substring(0, oldString.length - 1);
+                    var newString = JSON.stringify(json);
+                    newString = newString.substring(1, oldString.length);
+                    oldString = oldString + "," + newString;                    
+                    localStorage.setItem("gameFeed", oldString);
+                }
+                else
+                {
+                    localStorage.setItem("gameFeed", JSON.stringify(json));
+                }
+
                 if(currentTab == "Game")                    
                 {
-                    console.log("Returned in game feed");                    
-
                     //Get the Template from above
                     var Source = document.getElementById("Game-Handlebars-Template").textContent;                   
                     //Compile the actual Template file
@@ -184,7 +271,7 @@
                     //Generate some HTML code from the compiled Template
                     var HTML = Template({ Data : json });                            
                     //Replace the body section with the new code.      
-                                                     
+                    console.log("Returned: " + HTML);                 
                     $('.content').append(HTML); 
                          
                     /**                           
@@ -200,11 +287,10 @@
                         event: "scrollstop"
                     });  
                     
-
                     //the purpose of this is to oad the initial images in view
-                    $(window).resize()       
+                    $(window).resize();       
                 }                       
-            })
+            });
         }        
 
         function saveAnswer(friendID, chosen, wrong, question) {
@@ -244,8 +330,11 @@
                 clearTimeout(timer);
             }
 
+            //resets bottom navbar position dynamically
+            $("#bottomNav").css('bottom', -24 - ($(window).scrollTop()));
+
             // Use a buffer so we don't call myCallback too often.
-            timer = setTimeout(updateGameWithScroll, 2000);
+            timer = setTimeout(updateGameWithScroll, 500);
         });
             
 
@@ -410,33 +499,21 @@
             <a href="#" class="app-icon action">
                 <i class="icon-fries"></i>
             </a>
-            <h1 class="title">Side - Now on Android</h1>
+            <h1 class="title">Welcome</h1>
             
         </header>
 
-        <nav class="action-bar fixed-bottom">
+        <nav class="action-bar fixed-bottom" id = "bottomNav">
             <ul class="actions flex" data-overflow="false">
-                <li><a href="profile.html" class="action"><i class="icon-new-message"></i></a></li>
-                <li><a href="index.html" class="action"><i class="icon-group"></i></a></li>
-                <li><a href="training.html" class="action"><i class="icon-refresh"></i></a></li>
+                <li><a href="#" class="action" id = "toProfile"><i class="icon-new-message"></i></a></li>
+                <li><a href="#" class="action" id = "toGame"><i class="icon-new-message"></i></a></li>
+                <li><a href="#" class="action" id = "toTraining"><i class="icon-new-message"></i></a></li>
             </ul>
         </nav>
         
-        <div class="content" style = "">
-
-            <script type="text/javascript">
-                console.log("Index loaded inner");
-                getGameFeed();
-            </script>
-      
-            <h1 class="intro">Fries Demo</h1>
-            <p>This demo is an example of what you can build with Fries. Try it out, check the source, and play with it.</p>            
+        <div class="content" style = "">            
+            Hey, this is the content div.
         </div>
-    </div>
-
-    <script src="js/stack.js"></script>
-    <script src="js/action-bars.js"></script>
-    <script src="js/spinners.js"></script>
-    <script src="js/tabs.js"></script>
+    </div>    
 </body>
 </html>
