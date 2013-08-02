@@ -23,21 +23,8 @@
 
     <link rel="shortcut icon" href="favicon.png"/>
 
+    <link rel="stylesheet" href="css/custom.css">
 
-    <link rel="stylesheet" href="css/content.css">
-
-    
-    <link rel="stylesheet" href="css/base.css">
-    
-    <link rel="stylesheet" href="css/action-bars.css">
-    <link rel="stylesheet" href="css/chevrons.css">
-    <link rel="stylesheet" href="css/tabs.css">    
-    <link rel="stylesheet" href="css/buttons.css">
-    <link rel="stylesheet" href="css/forms.css">
-    <link rel="stylesheet" href="css/lists.css">
-    <link rel="stylesheet" href="css/spinners.css">
-    <link rel="stylesheet" href="css/icomoon.css">
-    <link rel="stylesheet" href="css/sliders.css">
     <link rel="stylesheet" href="css/badger.css">
         
     <script type="text/javascript">
@@ -191,12 +178,16 @@
             });
             $("#toProfile").on("click", function() {
                 console.log("Clicked on toProfile");
+
+                storeScrollState();
                 //clear 
                 $(".content").html("In profile!");
                 currentTab = "Profile";
             });
             $("#toTraining").on("click", function() {
                 console.log("Clicked on toTraining");
+
+                storeScrollState();
                 $(".content").html("In training!");
                 currentTab = "Training";
             });
@@ -204,16 +195,20 @@
         }
 
         function storeScrollState() {
+            console.log("Storing scroll state");
             if(currentTab == "Game")
             {
+                console.log("Storing scroll state for game");
                 localStorage.setItem("gameScroll", $(window).scrollTop() );
             }
             else if(currentTab == "Profile")
             {
+                console.log("Storing scroll state for profile");
                 localStorage.setItem("profileScroll", $(window).scrollTop() );
             }
             else if(currentTab == "Training")
             {
+                console.log("Storing scroll state for training");
                 localStorage.setItem("trainingScroll", $(window).scrollTop() );
             }
         }
@@ -251,9 +246,11 @@
                 if(localStorage.getItem("gameFeed"))
                 {
                     var oldString = localStorage.getItem("gameFeed");
+
+                    //splices the two together
                     oldString = oldString.substring(0, oldString.length - 1);
                     var newString = JSON.stringify(json);
-                    newString = newString.substring(1, oldString.length);
+                    newString = newString.substring(1, newString.length);
                     oldString = oldString + "," + newString;                    
                     localStorage.setItem("gameFeed", oldString);
                 }
@@ -331,7 +328,7 @@
             }
 
             //resets bottom navbar position dynamically
-            //$("#bottomNav").css('bottom', -24 - ($(window).scrollTop()));
+            $("#bottomNav").css('bottom', -24 - ($(window).scrollTop()));
             //$("#bottomNav").css('bottom', -24);
 
             // Use a buffer so we don't call myCallback too often.
@@ -495,29 +492,25 @@
         {{/each}}
     </script>
 
-    <div class="page">
-        <header class="action-bar fixed-top">
-            <a href="#" class="app-icon action">
-                <i class="icon-fries"></i>
-            </a>
-            <h1 class="title">Welcome</h1>
-            
-        </header>
-
-        <div class="action-bar-no-position" id = "bottomNav">
-            
-            <ul class="actions flex" data-overflow="false">
-                <li><a href="#" class="action" id = "toProfile"><i class="icon-new-message"></i></a></li>
-                <li><a href="#" class="action" id = "toGame"><i class="icon-new-message"></i></a></li>
-                <li><a href="#" class="action" id = "toTraining"><i class="icon-new-message"></i></a></li>
-            </ul>
-            
-            
-        </div>
+    <div class="action-bar fixed-top">
+        <a href="#" class="app-icon action">
+            <i class="icon-fries"></i>
+        </a>
+        <h1 class="title">Welcome</h1>
         
-        <div class="content" style = "">            
-            Hey, this is the content div.
-        </div>
-    </div>    
+    </div>
+
+    <div class="action-bar-bottom" id = "bottomNav">
+        
+        
+            <a href="#" class="action" id = "toProfile"><i class="icon-new-message"></i>Profile</a>
+            <a href="#" class="action" id = "toGame"><i class="icon-new-message"></i>Game</a>
+            <a href="#" class="action" id = "toTraining"><i class="icon-new-message">Training</i></a>        
+                
+    </div>
+    
+    <div class="content">            
+        Hey, this is the content div.
+    </div>
 </body>
 </html>
