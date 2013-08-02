@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<widget xmlns       = "http://www.w3.org/ns/widgets"
+xmlns:gap   = "http://phonegap.com/ns/1.0"
+id      = "com.F11Labs.side"
+version     = "1.0.0">
+
+<access origin=".*"/>
+
+<name>bla</name>
+
+<preference name="orientation" value="portrait" />
+
+<description>
+    bla
+</description>
+
+<author href="http://bla.github.com"
+    email="bla@gmail.com">
+    bla
+</author>
+
+<icon src="icon.png" gap:role="default" />
+
+	<feature name="http://api.phonegap.com/1.0/device" />
+	<feature name="http://api.phonegap.com/1.0/battery"/>
+	<feature name="http://api.phonegap.com/1.0/camera"/>
+	<feature name="http://api.phonegap.com/1.0/contacts"/>
+	<feature name="http://api.phonegap.com/1.0/file"/>
+	<feature name="http://api.phonegap.com/1.0/geolocation"/>
+	<feature name="http://api.phonegap.com/1.0/media"/>
+	<feature name="http://api.phonegap.com/1.0/network"/>
+	<feature name="http://api.phonegap.com/1.0/notification"/>
+
+  <preference name="webviewbounce" value="false" />
+  <preference name="prerendered-icon" value="true" />
+
+  <preference name="fullscreen" value="false" />
+  <preference name="stay-in-webview" value="false" />
+  <preference name="ios-statusbarstyle" value="default" />
+  <preference name="android-minSdkVersion" value="7" />
+  <preference name="android-installLocation" value="internalOnly" />
+  <preference name="target-device" value="universal" />
+  <preference name="autohide-splashscreen" value="true" />
+  <preference name="load-url-timeout" value="60000" />
+  <preference name="show-splashscreen-spinner" value="true" />
+  <preference name="show-splash-screen-spinner" value="true" />
+  <preference name="allow-inline-media-playback" value="false" />
+  <preference name="launch-mode" value="standard" />
+  
+  <plugin name="App" value="org.apache.cordova.App"/>
+    <plugin name="Geolocation" value="org.apache.cordova.GeoBroker"/>
+    <plugin name="Device" value="org.apache.cordova.Device"/>
+    <plugin name="Accelerometer" value="org.apache.cordova.AccelListener"/>
+    <plugin name="Compass" value="org.apache.cordova.CompassListener"/>
+    <plugin name="Media" value="org.apache.cordova.AudioHandler"/>
+    <plugin name="Camera" value="org.apache.cordova.CameraLauncher"/>
+    <feature name="http://api.phonegap.com/1.0/device" />
+	<feature name="http://api.phonegap.com/1.0/camera"/>
+	<feature name="http://api.phonegap.com/1.0/file"/>
+	<feature name="http://api.phonegap.com/1.0/media"/>
+	<feature name="http://api.phonegap.com/1.0/network"/>
+	<feature name="http://api.phonegap.com/1.0/capture"/>
+    <plugin name="Contacts" value="org.apache.cordova.ContactManager"/>
+    <plugin name="File" value="org.apache.cordova.FileUtils"/>
+	<plugin name="NetworkStatus" value="org.apache.cordova.NetworkManager"/> 
+    <plugin name="Notification" value="org.apache.cordova.Notification"/>
+    <plugin name="Storage" value="org.apache.cordova.Storage"/>
+    <plugin name="Temperature" value="org.apache.cordova.TempListener"/>
+    <plugin name="FileTransfer" value="org.apache.cordova.FileTransfer"/>
+    <plugin name="Capture" value="org.apache.cordova.Capture"/>
+    <plugin name="Battery" value="org.apache.cordova.BatteryListener"/>
+    <plugin name="org.apache.cordova.facebook.Connect" value="org.apache.cordova.facebook.ConnectPlugin" />
+</widget>

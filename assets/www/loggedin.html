@@ -1,0 +1,62 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script type="text/javascript" charset="utf-8" src="cordova-1.6.0.js"></script>
+<script type="text/javascript" charset="utf-8" src="jquery.js"></script>
+<script src="http://debug.phonegap.com/target/target-script-min.js#getsideapp"></script>
+<title>Cordova Facebook</title>
+
+<script>
+	function takePicture() {
+		alert("here in take picture...");
+		pictureSource=navigator.camera.PictureSourceType;
+        destinationType=navigator.camera.DestinationType;
+	
+		navigator.camera.getPicture(onSuccess, onFail, { quality: 50, 
+		    destinationType: Camera.DestinationType.FILE_URI }); 
+		
+		function onSuccess(imageURI) {
+		    var image = document.getElementById('myImage');
+		    image.src = imageURI;
+		    
+		    var options = new FileUploadOptions();
+			options.fileKey="fileupload";
+			var time = new Date().getTime();
+			var fileName = time+".jpg";
+			options.fileName = fileName;
+			options.mimeType ="image/jpeg";
+			options.chunkedMode = false;
+			 
+			var uri = encodeURI("https://preparsed_ug_product_images.s3.amazonaws.com/");
+			 		
+			var params = {
+			  "key": "uploads/"+fileName,
+			  "AWSAccessKeyId": "AKIAJ5NFFKY3KUKBRTPQ",
+			  "acl": "public-read",		  
+			  "Content-Type": "image/jpeg"
+			};
+			options.params = params;
+			 
+			var ft = new FileTransfer();
+			ft.upload(imageURI, uri, uploadSuccess, uploadFail, options);
+			alert("uploaded!");
+		}
+		
+		function onFail(message) {
+		    alert('Failed because: ' + message);
+		}
+		
+		
+	}
+</script>	
+</head>
+<body>
+
+Hey, we've been logged in now....
+
+<button onclick="takePicture()">Take Pic</button>
+
+<img src = "" id = "myImage">
+
+</body>

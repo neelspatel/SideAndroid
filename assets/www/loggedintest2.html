@@ -1,0 +1,125 @@
+<script src="http://10.2.80.141:8080/target/target-script-min.js#anonymous"></script>
+<script src="cordova-1.6.0.js"></script>
+
+    <script type="text/javascript" charset="utf-8">
+        var pictureSource;   // picture source
+        var destinationType; // sets the format of returned value 
+
+        // Wait for Cordova to connect with the device
+        function onLoad() { console.log("Loaded"); document.addEventListener("deviceready", onDeviceReady, false); }
+
+        // Cordova is ready to be used!        
+        function onDeviceReady() {
+            pictureSource = navigator.camera.PictureSourceType;
+            destinationType = navigator.camera.DestinationType;
+            console.log("device is ready");
+        }
+        
+        // Called when a photo is successfully retrieved        
+        function onPhotoURISuccess(imageURI) {
+        	console.log("Success!");
+            var image = document.getElementById('smallImage');
+            image.style.display = 'block';
+            image.src = imageURI; 
+            
+            var left = document.getElementById('leftURI');
+            left.innerHTML = imageURI;
+        }    
+
+		// Called if something bad happens. 
+        function onFail(message) {
+            console.log('Failed because: ' + message);
+        }		
+
+        // To get a picture from file      
+        function getPhoto() {
+        	pictureSource = navigator.camera.PictureSourceType;
+            destinationType = navigator.camera.DestinationType;
+        
+            // Retrieve image file location from specified source
+            navigator.camera.getPicture(onPhotoURISuccess, onFail, {
+                quality: 20,
+                destinationType: destinationType.FILE_URI,
+                sourceType: pictureSource.SAVEDPHOTOALBUM
+            });
+        }
+
+		// To get a picture from camera        
+        function captureImage() {            
+            navigator.device.capture.captureImage(captureSuccess, captureError, { limit: 1 });
+        }
+        
+        //save from camera
+        function captureSuccess(mediaFiles) {    
+        	console.log("Success!");        
+            navigator.notification.console.log(mediaFiles[0]);
+        }
+
+		//fail from camera
+        function captureError(error) {
+            var msg = 'An error occurred during capture: ' + error.code;
+            navigator.notification.console.log(msg, null, 'Uh oh!');
+        }
+        
+        //get image from yahoo
+        function yahoo() {
+        	console.log("coming soon");
+        }
+        
+        //first saves the image on server
+        function saveImage() {    
+        	imageURI = document.getElementById('leftURI').innerHTML;
+            	
+        	var options = new FileUploadOptions();
+		    options.fileKey="fileupload";
+		    options.fileName=imageURI.substr(imageURI.lastIndexOf('/')+1);
+		    options.mimeType="image/jpeg";
+		    options.chunkedMode = false;
+			
+			var name = (new Date).getTime() + ".jpg";
+			
+		    var params = {};
+		    params.name = name;		    
+			
+		    options.params = params;
+		 
+		    var ft = new FileTransfer();
+		    var uri = encodeURI("http://54.244.251.104/data/uploadImage");
+		    ft.upload(imageURI, uri, uploadSuccess, uploadFail, options);					 						
+        }
+        
+        function uploadSuccess() {
+        	console.log("Uploaded!!");
+        }
+
+		var retry = 0;
+		function uploadFail(error) {
+        	console.log("Failed :( " + JSON.stringify(error));
+        	console.log(JSON.stringify(error));
+        	
+        	if(retry < 3)
+        	{
+        		retry++;
+        		saveImage();
+        	}
+        	
+        }
+        
+    </script>
+</head>
+<body onLoad="onLoad()">            
+    <img style="display:none;width:60px;height:60px;" id="smallImage" src="" />
+    <div id="container" style = "width: 100%">
+    	<div id="left" style = "float: left; padding: 10px;"> 
+    		Left side dawg
+    		<button onclick="getPhoto();">From Photo Album</button>
+    		<button onclick="captureImage();">From Camera</button>
+    		<button onclick="yahoo();">From Web</button>
+    		<button onclick="saveImage();">Save</button>    
+    		
+    		<div id = "leftURI"></div>		
+    	</div>
+    	<div id="right" style = "overflow:hidden; padding: 10px;"> 
+    		Right side tho
+    	</div>
+    </div>

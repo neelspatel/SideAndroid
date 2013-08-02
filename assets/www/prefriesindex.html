@@ -1,0 +1,566 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script type="text/javascript" charset="utf-8" src="js/cordova-1.6.0.js"></script>
+	<script type="text/javascript" charset="utf-8" src="js/cdv-plugin-fb-connect.js"></script>
+	<script type="text/javascript" charset="utf-8" src="js/facebook_js_sdk.js"></script>
+	
+	<script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+	<script src="js/handlebars.js"></script>
+    <script src="js/scrollstop.js"></script>
+    <script src="js/jquery.lazyload.min.js"></script>
+
+	<script src="http://10.2.80.141:8080/target/target-script-min.js#anonymous"></script>
+
+	<title>Cordova Facebook Example</title>
+
+	<script type="text/javascript">
+		var friendIDs = [];
+		var friendNames = [];
+		var friendGenders = [];
+		var friendMutualFriends = [];				
+		var userInfo = {};
+		var gameRequest;
+		var onGame = false;
+		
+		document.addEventListener("deviceready", onDeviceReady, false); 						
+
+		function onDeviceReady() {		
+			$("#body").scroll(function() {
+				console.log("scrolled");
+			});
+
+			console.log("index.html loaded");
+
+			$("#inner").hide();
+
+			//attemptes facebook login (if necessary)
+			try {				
+				FB.init({
+					appId : "545929018807731",
+					nativeInterface : CDV.FB,
+					useCachedDialogs : false
+				});				
+				
+
+				//if we have a facebook id already
+				if(localStorage.getItem("sideFacebookID"))
+				{
+					FB.getLoginStatus(function(response) {
+					if (response.status === 'connected') {
+						var accessToken = response["authResponse"]["accessToken"];
+					    console.log("Access token is " + accessToken);
+
+					    //switches to the next screen
+					    loadApp();
+					} else 				   
+					    // the user isn't logged in to Facebook.
+						login();		    
+					});
+				}
+				else //otherwise force login
+				{
+					login();
+				}				
+				
+			} catch (e) {
+				console.log(e);
+			}
+
+            //assigns the click listener to the image in the game
+            $('#inner').on('click tap', 'img', function(){
+                console.log("Clicked");
+                var row = $(this).closest('.row');  
+                var img = $(this).closest('img');   
+                var data = $(this).closest('.row').data().all;
+
+                //checks if we've clicked this row yet
+                if($(this).closest('.row').data("clicked"))
+                {
+                    console.log("Yeee clicked this already.");
+                }     
+                else
+                {
+                    //adds a border to this one
+                    img.css({'background-color': '#FFFFCC'});
+                    img.css("border", "rgba(25,97,166,1) solid 10px");          
+                    img.css("margin", "10px");  
+
+                    //otherwise, set is as clicked in the data and perform the click action
+                    $(this).closest('.row').data("clicked", true);  
+                    console.log("You answered '" + data.questionText + "' for " + data.name + "(" + data.friend + "), with choice " + img.attr("class") );
+
+                    //finally, save it in localstorage
+                    if(img.attr("class") == "left gameImage")
+                    {
+                        console.log("Saving the left image");
+                        saveAnswer(data.friend, data.product1, data.product2, data.currentQuestion);
+                    }
+                    else
+                    {
+                        console.log("Saving the right image");
+                        saveAnswer(data.friend, data.product2, data.product1, data.currentQuestion);
+                    }                
+                }                   
+            }); 
+
+			//assigns the click listener to the agreebutton in the profile
+            $('#inner').on('click tap', '.answerAgree', function(){
+            	var data = $(this).closest('.row').data().all;
+
+            	var key = data.question + data.friend + data.chosenProductID + data.otherProductID;
+            	console.log("Key in tap is : " + key);
+	            //var hash = hash(key);
+	            var hash = key;
+	            var answerAgreeStatuses = localStorage.getItem("answerAgreeStatuses");
+	            if(!answerAgreeStatuses)
+	            {
+	            	answerAgreeStatuses = {key: 1};
+	            }
+	            else
+	            {
+	            	answerAgreeStatuses[key] = 1;
+	            }
+
+	            $(this).html("Agreed set");
+
+	            localStorage.setItem("answerAgreeStatuses", answerAgreeStatuses);
+            });
+
+            //assigns the click listener to the agreebutton in the profile
+            $('#inner').on('click tap', '.answerDisagree', function(){
+            	var data = $(this).closest('.row').data().all;
+
+            	var key = data.question + data.friend + data.chosenProductID + data.otherProductID;
+	            //var hash = hash(key);
+	            var hash = key;
+	            var answerDisagreeStatuses = localStorage.getItem("answerDisagreeStatuses");
+	            if(!answerDisagreeStatuses)
+	            {
+	            	answerDisagreeStatuses = {key: 0};
+	            }
+	            else
+	            {
+	            	answerDisagreeStatuses[key] = 0;
+	            }
+
+	            $(this).html("Disagreed set");
+
+	            localStorage.setItem("answerDisagreeStatuses", answerDisagreeStatuses);
+            });
+
+		}
+
+//---------------------------------TRANSITION-------------------------	
+		function loadApp() {
+			console.log("Logging into app now.");
+			$("#login").hide();
+			$("#inner").show();
+			showTab(0);
+			getGameFeed();	
+		}
+//---------------------------------LOGIN-------------------------		
+		function sendNewAccessToken(accessToken) {	
+			FB.api('/me', function(response) 
+			{			
+				console.log("Response from me: " + JSON.stringify(response));
+
+				localStorage.setItem("sideFacebookID", response.id);
+
+				$.ajax({
+					type: 'POST',
+					url: "http://54.214.234.140/data/createuser/",
+					data: {"access_token": accessToken},
+					beforeSend: function() { 
+						console.log("about to send info for new user"); 
+					},
+					success: function(data){ 
+						//saves everything locally
+						localStorage.setItem("friends", JSON.stringify(data["friends"]));
+						localStorage.setItem("genders", JSON.stringify(data["genders"]));
+						localStorage.setItem("names", JSON.stringify(data["names"]));
+						localStorage.setItem("top_friends", JSON.stringify(data["top_friends"]));
+
+						console.log("hey, all submitted for the new user."); 	
+						loadApp();								
+					},
+					error: function(error){ 
+						console.log("error in creating new access token :("); console.log(JSON.stringify(error)); data.innerHTML = data.innerHTML + JSON.stringify(error) + " ";
+					}
+				});
+			});						
+		};			
+
+		function login() {
+			FB.login(function(response) {
+				if (response.authResponse) {
+					var accessToken = response["authResponse"]["accessToken"];
+				    
+				    //updates user params, and switches to the next screen
+				    sendNewAccessToken(accessToken);
+				} else {
+					console.log('error, not logged in');
+				}
+			}, {
+				scope : "user_about_me, user_relationships, user_birthday, user_location"				
+			});
+		}
+		
+		function getUserID() {
+			//first tries getting it from localstorage
+			var id = localStorage.getItem("sideFacebookID");
+			
+			if(id) // if it exists
+			{
+				console.log("Got the user id, it is " + id);
+				return id;
+			}			
+			else //otherwise logs in and tries to get it
+			{
+				console.log("Getting the used id from facebook.");
+				FB.api('/me', function(response) 
+			    {			         
+			        localStorage.setItem("sideFacebookID", response.id);
+			        
+			        //now tries again
+			        getUserID();
+			    });
+			
+			}		
+		}
+
+//---------------------FUNCTIONS FOR IN APP
+		function showTab(index) {
+			console.log("Clicked");
+
+            //hides everything and resets the buttons
+            hideAll();
+            setButtonsUnselected();
+
+            if(index == 0)
+            {
+                console.log("Clicked index 0, currently html is " + $("#tab0").html());
+                onGame = true;                               
+				
+				console.log("Right outside ajax call");
+                //shows index 0
+                $("#tab0").show();
+                //$("#tab0").css("margin-top", "0px");
+            }
+            else if(index == 1)
+            {
+                console.log("Clicked index 1 from in showtab");
+
+                //gets the data for tab1
+                $.getJSON( "http://54.214.234.140/data/getallfeedobjects/1256912018/?nocache=" + (new Date).getTime(), function( json ) {             	                	
+                    
+	                    //console.log("Returned: " + JSON.stringify(json));                    
+	                    console.log("Returned in profile");                    
+
+	                    //Get the Template from above
+	                    var Source = document.getElementById("Profile-Handlebars-Template").textContent;                   
+	                    //Compile the actual Template file
+	                    var Template = Handlebars.compile(Source);  
+	                    console.log("got template");               
+	                    //Generate some HTML code from the compiled Template
+	                    var HTML = Template({ Data : json });   
+	                    console.log("got html");                                                    
+	                    //Replace the body section with the new code.	                    
+	                    $('#tab1').html(HTML);
+
+						$("img").lazyload({
+							container: $("#inner")
+						});
+
+	                    //the purpose of this is to oad the initial images in view
+	                    $(window).resize()       
+	                		            
+                });
+
+                //shows index 1
+                $("#tab1").show();
+                //$("#tab1").css("margin-top", "0px");
+            }
+            else if(index == 2)
+            {
+                console.log("Clicked index 2");
+
+                //shows index 2
+                $("#tab2").show();
+                //$("#tab2").css("margin-top", "0px");
+            }
+            return true;
+        }
+
+        function getGameFeed() {
+        	//sets the data for tab0
+            gameRequest = $.getJSON( "http://54.214.234.140/data/newgetlistquestions/1256912018/?nocache=" + (new Date).getTime(), function( json ) {             	                	
+                if(onGame)                    
+                {
+                    console.log("Returned in game feed");                    
+
+                    //Get the Template from above
+                    var Source = document.getElementById("Game-Handlebars-Template").textContent;                   
+                    //Compile the actual Template file
+                    var Template = Handlebars.compile(Source);                 
+                    //Generate some HTML code from the compiled Template
+                    var HTML = Template({ Data : json });                            
+
+                    //Replace the body section with the new code.                                        
+                    $('#tab0').append(HTML);	
+                                
+
+                    /**
+                    $img").lazyload({
+                        event: "scrollstop",
+                        effect : "fadeIn",
+                        container: $("#inner")
+                     });
+					*/
+					$("img").lazyload({
+						container: $("#inner")
+					});
+
+                    //the purpose of this is to oad the initial images in view
+                    $(window).resize()       
+                }			            
+            })
+        }
+
+        function hideAll() {
+        	onGame = false;  
+            try
+            {            	
+                gameRequest.abort();   
+                console.log("Cancelled the request");         
+            }
+            catch (err)
+            {
+                console.log("Error aborting");
+            }
+            $("#tab0").hide();
+            $("#tab1").hide();
+            $("#tab2").hide();
+            
+        }
+
+        function setButtonsUnselected() {            
+        }  
+
+        function saveAnswer(friendID, chosen, wrong, question) {
+            $.ajax({
+                type: 'POST',
+                url: "http://54.214.234.140/data/newanswer/",
+                data: {
+                    "id_facebookID": getUserID(),
+                    "id_forFacebookID": friendID,
+                    "id_chosenProduct": chosen,
+                    "id_wrongProduct": wrong,
+                    "id_question": question                    
+                },
+                beforeSend: function() { 
+                    
+                },
+                success: function(data){ 
+                    
+                },
+                error: function(error){ 
+                    console.log("error :("); 
+                    console.log(JSON.stringify(error));
+                }
+            });
+        }     
+
+        function hash(s) {
+        	return s.split("").reduce(function(a,b){a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);              
+        }
+
+        //ties listener to the scrolling action
+        var timer = 0;
+		$(window).scroll( function () {
+			if (timer) {
+		    	clearTimeout(timer);
+		    }
+
+		    // Use a buffer so we don't call myCallback too often.
+		    timer = setTimeout(updateGameWithScroll, 100);
+		});
+			
+
+		function updateGameWithScroll() {
+			if ($("#tab0").is(":visible"))
+			{
+				//scrolling inside tab0
+				console.log("scrolling inside tab0");
+				if($(window).scrollTop() + $(window).height() == $(document).height()) {
+					getGameFeed();
+				}
+			}
+			else
+			{
+				//scrolling outside of tab0
+				console.log("scrolling outside of tab0");
+			}
+		}
+
+        //handlebars functions
+        Handlebars.registerHelper('getLeftImage', function(url) {
+            //url = url.replace(/\+/, "%2b");
+            //url = url.replace(/ /g, "+")      
+            //url = "https://s3.amazonaws.com/pave_product_images/" + url   
+            url = '<img data-original="' + url + '" src="images/grey.gif" height="70" width="70" class = "left gameImage" style = "margin:20px;">'                    
+            return new Handlebars.SafeString(url);
+        });
+
+        Handlebars.registerHelper('getRightImage', function(url) {
+            //url = url.replace(/\+/, "%2b");
+            //url = url.replace(/ /g, "+")      
+            //url = "https://s3.amazonaws.com/pave_product_images/" + url   
+            url = '<img data-original="' + url + '" src="images/grey.gif" height="70" width="70" class = "right gameImage" style = "margin:20px;">'    
+            return new Handlebars.SafeString(url);
+        });
+
+        Handlebars.registerHelper('getLeftImageProfile', function(url) {
+            //url = url.replace(/\+/, "%2b");
+            //url = url.replace(/ /g, "+")      
+            //url = "https://s3.amazonaws.com/pave_product_images/" + url   
+            url = '<img data-original="' + url + '" src="images/grey.gif" height="50" width="50" class = "left profileImage" style = "margin:5px;">'                    
+            return new Handlebars.SafeString(url);
+        });
+
+
+        Handlebars.registerHelper('getRightImageProfile', function(url) {
+            //url = url.replace(/\+/, "%2b");
+            //url = url.replace(/ /g, "+")      
+            //url = "https://s3.amazonaws.com/pave_product_images/" + url   
+            url = '<img data-original="' + url + '" src="images/grey.gif" height="50" width="50" class = "right profileImage" style = "margin:5px;">'    
+            return new Handlebars.SafeString(url);
+        });
+
+        Handlebars.registerHelper('getProfilePicture', function(friend) {           
+            url = "https://graph.facebook.com/" + friend + "/picture"
+            url = "<img data-original='" + url + "' src='images/grey.gif' height='30' width='30' style = 'float:left;'>"   
+            return new Handlebars.SafeString(url);
+        });
+
+        Handlebars.registerHelper('getAnswerAgreeButton', function(object) {  
+        	console.log("In agree ");
+			var key = object.question + object.friend + object.chosenProductID + object.otherProductID;
+
+            console.log("key is " + key);
+            //var hash = hash(key);
+            var hash = key;
+            //console.log("Hash is " + hash);
+            var answerAgreeStatuses = localStorage.getItem("answerAgreeStatuses");
+            var button;
+            if(answerAgreeStatuses !== null)
+            {
+            	console.log("answerAgreeStatuses Exists");
+            	if(answerAgreeStatuses[key] == 1) //if it's an agree
+            	{
+            		button = '<button class = "answerAgree">Agreed</button>';
+            	}
+            	else
+            	{
+            		button = '<button class = "answerAgree">Agree</button>';
+            	}
+            }
+            else
+            {
+            	console.log("answerAgreeStatuses doesnt exist");
+            	button = '<button class = "answerAgree">Agree</button>';
+            }
+            return new Handlebars.SafeString(button);
+
+        });
+
+        Handlebars.registerHelper('getAnswerDisagreeButton', function(object) {  
+        	console.log("In disagree ");                 
+            var key = object.question + object.friend + object.chosenProductID + object.otherProductID;
+            console.log("key is " + key);
+            //var hash = hash(key);
+            var hash = key;
+            console.log("Hash is " + hash);
+            var answerDisagreeStatuses = localStorage.getItem("answerDisagreeStatuses");
+            var button;
+            if(answerDisagreeStatuses !== null)
+            {
+            	console.log("answerDisagreeStatuses Exists");
+            	if(answerDisagreeStatuses[key] == 0) //if it's a disagree
+            	{
+            		button = '<button class = "answerDisagree">Disagreed</button>';
+            	}
+            	else
+            	{
+            		button = '<button class = "answerDisagree">Disagree</button>';
+            	}
+            }
+            else
+            {
+            	console.log("answerDisagreeStatuses doesnt exist");
+            	button = '<button class = "answerDisagree">Disagree</button>';
+            }
+            return new Handlebars.SafeString(button);
+
+        });
+
+        Handlebars.registerHelper('getObject', function(context) {             
+            //return new Handlebars.SafeString(JSON.stringify(context));
+            return JSON.stringify(context);
+        }); 		
+	</script>
+</head>
+<body style = "width: 100%;" id = "body">	
+	<div id = "login" style = "width: 100%;">	
+		<div id="data">Hello Facebooktesters, loading ...</div>
+	</div>
+
+	<script id="Game-Handlebars-Template" type="text/x-handlebars-template">             
+        {{#each Data}}
+            <div style = "height:120px; padding: 10px; display:block;" class = "row" data-all='{{getObject this}}'>
+                {{getProfilePicture friend}} <span style = "display:block; height: 30px;"> {{questionText}} </span>
+                </br>
+                {{getLeftImage image1}}
+                {{getRightImage image2}}
+                <input type="hidden" value='{{getObject this}}'>
+                <input class = "clickedyet" type="hidden" value='no'>
+            </div>
+        {{/each}}
+    </script>
+
+    <script id="Profile-Handlebars-Template" type="text/x-handlebars-template">		    	
+    	{{#each Data}}
+    		<div style = "height:120px; padding: 10px;" class = "row" data-all='{{getObject this}}'>
+    			<span style = "background-color: rgb(16,154,220); color: white;">  {{getProfilePicture friend}} {{question}} </span>
+    			</br>
+    			{{getAnswerAgreeButton this}} 
+    			{{getLeftImageProfile chosenProduct}}
+    			{{getRightImageProfile otherProduct}}    			
+    			{{getAnswerDisagreeButton this}}
+    			<input type="hidden" value='{{getObject this}}'>
+    			<input class = "clickedyet" type="hidden" value='no'>
+    		</div>
+    	{{/each}}
+	</script>
+		
+    <div id="inner" style = "width: 100%; margin: 0px; padding: 0px;">
+    	<h1>In container</h1>
+        <button onClick="showTab(0)" id = "button0" style = "width: 80px;">Game</button>
+        <button onClick="showTab(1)" id = "button1" style = "width: 80px;">Profile</button>
+        <button onClick="showTab(2)" id = "button2" style = "width: 80px;">Training</button>
+        <div id = "tab0" class = "tabBody" style = "width: 100%; height: 90%;">            
+        	tab0
+        </div>
+        <div id = "tab1">    
+        	tab1        
+        </div>
+        <div id = "tab2">   
+        	tab2         
+        </div>
+    </div>
+
+	
+</body>
+</html>
