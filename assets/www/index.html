@@ -176,6 +176,7 @@
                 }
                 currentTab = "Game";
             });
+            
             $("#toProfile").on("click", function() {
                 console.log("Clicked on toProfile");
 
@@ -184,6 +185,7 @@
                 $(".content").html("In profile!");
                 currentTab = "Profile";
             });
+            
             $("#toTraining").on("click", function() {
                 console.log("Clicked on toTraining");
 
@@ -328,7 +330,7 @@
             }
 
             //resets bottom navbar position dynamically
-            $("#bottomNav").css('bottom', -24 - ($(window).scrollTop()));
+            //$("#bottomNav").css('bottom', -24 - ($(window).scrollTop()));
             //$("#bottomNav").css('bottom', -24);
 
             // Use a buffer so we don't call myCallback too often.
@@ -492,25 +494,25 @@
         {{/each}}
     </script>
 
-    <div class="action-bar fixed-top">
-        <a href="#" class="app-icon action">
-            <i class="icon-fries"></i>
-        </a>
-        <h1 class="title">Welcome</h1>
-        
-    </div>
+    <div class = "page">
+        <div class="header">        
+            <h1 class="title">Welcome</h1>        
+        </div>
 
-    <div class="action-bar-bottom" id = "bottomNav">
         
         
-            <a href="#" class="action" id = "toProfile"><i class="icon-new-message"></i>Profile</a>
-            <a href="#" class="action" id = "toGame"><i class="icon-new-message"></i>Game</a>
-            <a href="#" class="action" id = "toTraining"><i class="icon-new-message">Training</i></a>        
-                
-    </div>
-    
-    <div class="content">            
-        Hey, this is the content div.
+        <div class="content">            
+            Hey, this is the content div.
+        </div>
+
+        <div class="footer" id = "bottomNav">
+            
+            
+                <a href="#" class="action" id = "toProfile"><i class="icon-new-message"></i>Profile</a>
+                <a href="#" class="action" id = "toGame"><i class="icon-new-message"></i>Game</a>
+                <a href="#" class="action" id = "toTraining"><i class="icon-new-message">Training</i></a>        
+                    
+        </div>
     </div>
 </body>
 </html>
