@@ -36,19 +36,54 @@
         var gameRequest;
         var onGame = false;
         var currentTab = "Game";
+
+        var currentStatusScore = 0;
+        var currentNotifs = 0;
+        var currentAnswers = 0;
+        var currentRecs = 0;
+        var currentUGAnswers = 0;
         
         document.addEventListener("deviceready", onDeviceReady, false);                         
 
-        function onDeviceReady() {                  
-            console.log("index.html loaded");                       
+        function onDeviceReady() {                    
+            console.log("index.html loaded");   
 
-            getGameFeed();
+            //sets notification timer
+            setTimeout(getNotifications, 10000);
+                 
+            //gets the game feed if there's not one yet
+            if(localStorage.getItem("gameFeed"))   
+            {
+                console.log("gameFeed exists");
+                var data = JSON.parse(localStorage.getItem("gameFeed"));
+                //loads everything in
+                var Source = document.getElementById("Game-Handlebars-Template").textContent;                   
+                var Template = Handlebars.compile(Source);
+                var HTML = Template({ Data : data });                            
+                //Replace the body section with the new code.      
+                console.log("Returned: " + HTML);                 
+                $('.content').append(HTML);             
+                
+                $("img").lazyload({
+                    //container: $(".content")
+                    event: "scrollstop"
+                });  
+                
+                //the purpose of this is to oad the initial images in view
+                $(window).resize(); 
+            }
+            else
+            {
+                console.log("gameFeed doesn't exist");
+                getGameFeed();    
+            }
+            
 
             //saves user id TEMPORARILY
             localStorage.setItem("sideFacebookID", 1256912018);
 
             //assigns the click listener to the image in the game
-            $('.content').on('click tap', 'img', function(){
+            $('.content').on('click tap', '.gameImage', function(){
                 console.log("Clicked");
                 var row = $(this).closest('.row');  
                 var img = $(this).closest('img');   
@@ -76,11 +111,51 @@
                         console.log("Saving the left image");
                         saveAnswer(data.friend, data.product1, data.product2, data.currentQuestion);
                     }
-                    else
+                    else if(img.attr("class") == "right gameImage")
                     {
                         console.log("Saving the right image");
                         saveAnswer(data.friend, data.product2, data.product1, data.currentQuestion);
                     }                
+                }                   
+            }); 
+
+            //assigns the click listener to the image in training
+            $('.content').on('click tap', '.trainingImage', function(){
+                console.log("Clicked");
+                var row = $(this).closest('.row');  
+                var img = $(this).closest('img');   
+                var data = $(this).closest('.row').data().all;
+
+                //checks if we've clicked this row yet
+                if($(this).closest('.row').data("clicked"))
+                {
+                    console.log("Yeee clicked this already.");
+                }     
+                else
+                {
+                    //adds a border to this one
+                    img.css({'background-color': '#FFFFCC'});
+                    img.css("border", "rgba(25,97,166,1) solid 10px");          
+                    img.css("margin", "10px");  
+
+                    //otherwise, set is as clicked in the data and perform the click action
+                    $(this).closest('.row').data("clicked", true);  
+                    console.log("You answered '" + data.questionText + "' in training, with choice " + img.attr("class") );
+
+                    //finally, save it in localstorage
+                    if(img.attr("class") == "left trainingImage")
+                    {
+                        console.log("Saving the left image");
+                        saveTrainingAnswer(data.product1, data.product2, data.currentQuestion);
+                    }
+                    else if(img.attr("class") == "right trainingImage")
+                    {
+                        console.log("Saving the right image");
+                        saveTrainingAnswer(data.product2, data.product1, data.currentQuestion);
+                    }
+
+                    //moves to the nextone
+                    getTrainingQuestion();                
                 }                   
             }); 
 
@@ -180,10 +255,28 @@
             $("#toProfile").on("click", function() {
                 console.log("Clicked on toProfile");
 
+                //clears the badges
+                $("#toProfile").badger("");
+                currentRecs = 0;
+                currentAnswers = 0;
+                currentUGAnswers = 0;
+
                 storeScrollState();
                 //clear 
-                $(".content").html("In profile!");
+                $(".content").html("");                
+
                 currentTab = "Profile";
+
+                //Get the Template from above
+                var Source = document.getElementById("Profile-Header-Handlebars-Template").textContent;                   
+                //Compile the actual Template file
+                var Template = Handlebars.compile(Source);
+
+                //Generate some HTML code from the compiled Template
+                var HTML = Template({});                            
+                //Replace the body section with the new code.      
+                console.log("Returned: " + HTML);                 
+                $('.content').html(HTML);
             });
             
             $("#toTraining").on("click", function() {
@@ -192,8 +285,29 @@
                 storeScrollState();
                 $(".content").html("In training!");
                 currentTab = "Training";
+
+                getTrainingQuestion();
             });
 
+        }
+
+        function getNotifications () {
+            $.getJSON( "http://54.214.234.140/data/getnotification/1256912018/?nocache=" + (new Date).getTime(), function( json ) {
+                console.log("Got notification text as " + JSON.stringify(json));
+                currentStatusScore += json.status_score;
+                currentRecs += json.recs;
+                currentAnswers += json.answers;
+                currentUGAnswers += json.ug_answers;
+
+                var total = currentRecs + currentAnswers + currentUGAnswers;
+                
+                if(total != 0)
+                {
+                    $("#toProfile").badger(total + "");
+                }
+
+                setTimeout(getNotifications, 30000);
+            });         
         }
 
         function storeScrollState() {
@@ -255,6 +369,15 @@
                     newString = newString.substring(1, newString.length);
                     oldString = oldString + "," + newString;                    
                     localStorage.setItem("gameFeed", oldString);
+
+                    //if the list is too long, remove some elements
+                    if(JSON.parse(oldString).length > 300)
+                    {
+                        var parsed = JSON.parse(oldString);
+                        var length = parsed.length;
+                        var smaller = parsed.slice(length - 300, length);
+                        localStorage.setItem("gameFeed", JSON.stringify(smaller));
+                    }
                 }
                 else
                 {
@@ -290,7 +413,64 @@
                     $(window).resize();       
                 }                       
             });
-        }        
+        } 
+
+        function getTrainingFeed() {
+            console.log("going to get training feed");
+            //sets the data for tab2
+            gameRequest = $.getJSON( "http://54.214.234.140/data/traininggetlistquestions/1256912018/?nocache=" + (new Date).getTime(), function( json ) {                                   
+                
+                localStorage.setItem("trainingFeed", JSON.stringify(json));
+
+                //now updates the UI to reflect these new qs  
+                getTrainingQuestion();                        
+            });
+        }       
+
+        function getTrainingQuestion () {
+            if(currentTab == "Training")                    
+            {
+                //gets the stored list of questions
+                var data = localStorage.getItem("trainingFeed");
+
+                //checks if the list exists
+                //checks if we have enough items in the array
+                if(!data || data.length <= 2)
+                {
+                    getTrainingFeed();
+                }
+                else
+                {
+                    var list = JSON.parse(data);
+
+                    //gets the first element, and also removes it
+                    var first = list.shift();
+
+                    console.log("First item in training is " + JSON.stringify(first));
+
+                    //saves the new list in localstorage
+                    localStorage.setItem("trainingFeed", JSON.stringify(list));
+
+                    //Get the Template from above
+                    var Source = document.getElementById("Training-Handlebars-Template").textContent;                   
+                    //Compile the actual Template file
+                    var Template = Handlebars.compile(Source);                 
+                    //Generate some HTML code from the compiled Template
+                    var HTML = Template({ Data : [first] });                            
+                    //Replace the body section with the new code.      
+                    console.log("Returned: " + HTML);                 
+                    $('.content').html(HTML);   
+                    $("img").lazyload({
+                        //container: $(".content")
+                        event: "scrollstop"
+                    });  
+                    
+                    //the purpose of this is to oad the initial images in view
+                    $(window).resize();     
+                }
+                                 
+            }  
+        }
 
         function saveAnswer(friendID, chosen, wrong, question) {
             $.ajax({
@@ -302,6 +482,31 @@
                     "id_chosenProduct": chosen,
                     "id_wrongProduct": wrong,
                     "id_question": question                    
+                },
+                beforeSend: function() { 
+                    
+                },
+                success: function(data){ 
+                    
+                },
+                error: function(error){ 
+                    console.log("error :("); 
+                    console.log(JSON.stringify(error));
+                }
+            });
+        }  
+
+        function saveTrainingAnswer(chosen, wrong, question) {
+            $.ajax({
+                type: 'POST',
+                url: "http://54.214.234.140/data/newanswer/",
+                data: {
+                    "id_facebookID": getUserID(),
+                    "id_forFacebookID": getUserID(),
+                    "id_chosenProduct": chosen,
+                    "id_wrongProduct": wrong,
+                    "id_question": question,                  
+                    "is_training": "True"
                 },
                 beforeSend: function() { 
                     
@@ -388,8 +593,24 @@
             return new Handlebars.SafeString(url);
         });
 
+        Handlebars.registerHelper('getLeftImageTraining', function(url) {            
+            url = '<img data-original="' + url + '" src="images/grey.gif" height="70" width="70" class = "left trainingImage" style = "margin:20px;">'                    
+            return new Handlebars.SafeString(url);
+        });
+
+        Handlebars.registerHelper('getRightImageTraining', function(url) {              
+            url = '<img data-original="' + url + '" src="images/grey.gif" height="70" width="70" class = "right trainingImage" style = "margin:20px;">'    
+            return new Handlebars.SafeString(url);
+        });
+
         Handlebars.registerHelper('getProfilePicture', function(friend) {           
             url = "https://graph.facebook.com/" + friend + "/picture"
+            url = "<img data-original='" + url + "' src='images/grey.gif' height='30' width='30' style = 'float:left;'>"   
+            return new Handlebars.SafeString(url);
+        });
+
+        Handlebars.registerHelper('getProfilePictureTraining', function(friend) {           
+            url = "https://graph.facebook.com/" + localStorage.getItem("sideFacebookID") + "/picture"
             url = "<img data-original='" + url + "' src='images/grey.gif' height='30' width='30' style = 'float:left;'>"   
             return new Handlebars.SafeString(url);
         });
@@ -479,6 +700,10 @@
         {{/each}}
     </script>
 
+    <script id="Profile-Header-Handlebars-Template" type="text/x-handlebars-template">             
+        <div class = "profileHeading">Header2 here! </div>
+    </script>
+
     <script id="Profile-Handlebars-Template" type="text/x-handlebars-template">             
         {{#each Data}}
             <div style = "height:120px; padding: 10px;" class = "row" data-all='{{getObject this}}'>
@@ -494,9 +719,26 @@
         {{/each}}
     </script>
 
+    <script id="Training-Handlebars-Template" type="text/x-handlebars-template">             
+        
+        {{#each Data}}
+            <div style = "height:120px; padding: 10px; display:block;" class = "row" data-all='{{getObject this}}'>
+                {{getProfilePictureTraining}} <span style = "display:block; height: 30px;"> {{questionText}} </span>
+                </br>
+                {{getLeftImageTraining image1}}
+                {{getRightImageTraining image2}}
+                <input type="hidden" value='{{getObject this}}'>
+                <input class = "clickedyet" type="hidden" value='no'>
+            </div>  
+        {{/each}}      
+    </script>
+
     <div class = "page">
         <div class="header">        
-            Welcome
+            Side
+            <div>
+                Statusbarhere
+            </div>
         </div>
 
         
