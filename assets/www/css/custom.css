@@ -110,7 +110,12 @@ html, body {
   	height: 100%;
     font: 16px/1.6 "Roboto", sans-serif;
   	color: #fff;
-  	background-color: #000;
+  	background-color: rgb(238,238,238);
+
+  	width: 320px;
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
 }
 
 .page {
@@ -197,3 +202,34 @@ html, body {
 	box-shadow: 0 2px 6px rgba(0,0,0,0.25);
 }
 
+.row {
+	position: relative;
+}
+
+.leftCheckMark {
+    position: absolute;
+    left: 60px;
+    top: 120px;
+    z-index: 100;
+}
+
+.rightCheckMark {
+    position: absolute;
+    left: 210px;
+    top: 120px;
+    z-index: 100;
+}
+
+.leftLabel {
+    position: absolute;
+    left: 60px;
+    top: 150px;
+    z-index: 100;
+}
+
+.rightLabel {
+    position: absolute;
+    left: 210px;
+    top: 150px;
+    z-index: 100;
+}

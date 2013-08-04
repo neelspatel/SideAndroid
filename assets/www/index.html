@@ -43,11 +43,109 @@
         var currentRecs = 0;
         var currentUGAnswers = 0;
         
+        var globalAnswerAgreeStatuses;
+
         document.addEventListener("deviceready", onDeviceReady, false);                         
 
         function onDeviceReady() {                    
             console.log("index.html loaded");   
 
+            //shows login
+            $(".login").show();
+
+            //checks facebook status
+            //attemptes facebook login (if necessary)
+            try {               
+                FB.init({
+                    appId : "545929018807731",
+                    nativeInterface : CDV.FB,
+                    useCachedDialogs : false
+                });             
+                
+
+                //if we have a facebook id already
+                if(localStorage.getItem("sideFacebookID"))
+                {
+                    FB.getLoginStatus(function(response) {
+                    if (response.status === 'connected') {
+                        var accessToken = response["authResponse"]["accessToken"];
+                        console.log("Access token is " + accessToken);
+
+                        //switches to the next screen
+                        init();
+                    } else                 
+                        // the user isn't logged in to Facebook.
+                        login();            
+                    });
+                }
+                else //otherwise force login
+                {
+                    login();
+                }               
+                
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        //---------------------------------LOGIN-------------------------       
+        function sendNewAccessToken(accessToken) {  
+            FB.api('/me', function(response) 
+            {           
+                console.log("Response from me: " + JSON.stringify(response));
+
+                localStorage.setItem("sideFacebookID", response.id);
+
+                $.ajax({
+                    type: 'POST',
+                    url: "http://54.214.234.140/data/createuser/",
+                    data: {"access_token": accessToken},
+                    beforeSend: function() { 
+                        console.log("about to send info for new user"); 
+                    },
+                    success: function(data){ 
+                        //saves everything locally
+                        localStorage.setItem("friends", JSON.stringify(data["friends"]));
+                        localStorage.setItem("genders", JSON.stringify(data["genders"]));
+                        localStorage.setItem("names", JSON.stringify(data["names"]));
+                        localStorage.setItem("top_friends", JSON.stringify(data["top_friends"]));
+
+                        console.log("hey, all submitted for the new user.");    
+                        init();                        
+                    },
+                    error: function(error){ 
+                        alert("error in creating new access token :("); 
+                        alert(JSON.stringify(error)); data.innerHTML = data.innerHTML + JSON.stringify(error) + " ";
+                    }
+                });
+            });                     
+        };          
+
+        function login() {
+            FB.login(function(response) {
+                if (response.authResponse) {
+                    console.log("Logging in now");
+                    var accessToken = response["authResponse"]["accessToken"];
+                    
+                    //updates user params, and switches to the next screen
+                    sendNewAccessToken(accessToken);
+                } else {
+                    console.log('error, not logged in');
+                }
+            }, {
+                scope : "user_about_me, user_relationships, user_birthday, user_location"               
+            });
+        };
+
+        function logout() {
+            FB.logout(function(response) {
+                console.log("Logged out.");
+                $(".login").show();
+            });
+        };
+
+        function init() {               
+            console.log("init called");   
             //sets notification timer
             setTimeout(getNotifications, 10000);
                  
@@ -97,9 +195,9 @@
                 else
                 {
                     //adds a border to this one
-                    img.css({'background-color': '#FFFFCC'});
-                    img.css("border", "rgba(25,97,166,1) solid 10px");          
-                    img.css("margin", "10px");  
+                    //img.css({'background-color': '#FFFFCC'});
+                    //img.css("border", "rgba(25,97,166,1) solid 10px");          
+                    //img.css("margin", "10px");                      
 
                     //otherwise, set is as clicked in the data and perform the click action
                     $(this).closest('.row').data("clicked", true);  
@@ -108,11 +206,15 @@
                     //finally, save it in localstorage
                     if(img.attr("class") == "left gameImage")
                     {
+                        $(this).closest('.row').prepend("<div class = 'leftCheckMark'>Hey</div>");
+
                         console.log("Saving the left image");
                         saveAnswer(data.friend, data.product1, data.product2, data.currentQuestion);
                     }
                     else if(img.attr("class") == "right gameImage")
                     {
+                        $(this).closest('.row').prepend("<div class = 'rightCheckMark'>Hey</div>");
+
                         console.log("Saving the right image");
                         saveAnswer(data.friend, data.product2, data.product1, data.currentQuestion);
                     }                
@@ -174,35 +276,38 @@
                 }
                 else
                 {
+                    answerAgreeStatuses = JSON.parse(answerAgreeStatuses);
                     answerAgreeStatuses[key] = 1;
                 }
 
                 $(this).html("Agreed set");
 
-                localStorage.setItem("answerAgreeStatuses", answerAgreeStatuses);
+                localStorage.setItem("answerAgreeStatuses", JSON.stringify(answerAgreeStatuses));
             });
 
-            //assigns the click listener to the agreebutton in the profile
+            //assigns the click listener to the disagreebutton in the profile
             $('.content').on('click tap', '.answerDisagree', function(){
                 var data = $(this).closest('.row').data().all;
 
                 var key = data.question + data.friend + data.chosenProductID + data.otherProductID;
+                console.log("Key in tap is : " + key);
                 //var hash = hash(key);
                 var hash = key;
-                var answerDisagreeStatuses = localStorage.getItem("answerDisagreeStatuses");
-                if(!answerDisagreeStatuses)
+                var answerAgreeStatuses = localStorage.getItem("answerAgreeStatuses");
+                if(!answerAgreeStatuses)
                 {
-                    answerDisagreeStatuses = {key: 0};
+                    answerAgreeStatuses = {key: 0};
                 }
                 else
                 {
-                    answerDisagreeStatuses[key] = 0;
+                    answerAgreeStatuses = JSON.parse(answerAgreeStatuses);
+                    answerAgreeStatuses[key] = 0;
                 }
 
                 $(this).html("Disagreed set");
 
-                localStorage.setItem("answerDisagreeStatuses", answerDisagreeStatuses);
-            });            
+                localStorage.setItem("answerAgreeStatuses", JSON.stringify(answerAgreeStatuses));
+            });           
 
             //THIS SECTION IS FOR SHOWING AND HIDING TABS
             $("#toGame").on("click", function() {
@@ -324,6 +429,20 @@
 
                 setTimeout(getNotifications, 30000);
             });         
+        }
+
+        function checkForInsight() {
+            if(currentStatusScore >= 100)
+            {
+                //request the recommendation
+                $.getJSON( "http://54.214.234.140/data/getnewrec/1256912018/?nocache=" + (new Date).getTime(), function( json ) {
+
+                    if(json.url) //if it has proper data
+                    {
+                        alert(json.text);
+                    }
+                }
+            }
         }
 
         function storeScrollState() {
@@ -489,7 +608,8 @@
         }
 
         function getAnswersAboutMe() {            
-            //sets the data for tab0
+            //loads read statuses into memory
+            globalAnswerAgreeStatuses = localStorage.getItem("answerAgreeStatuses");
 
             //loads from localstorage first if possible
             if(localStorage.getItem("answersAboutMe"))
@@ -618,10 +738,8 @@
         function hash(s) {
             return s.split("").reduce(function(a,b){a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);              
         }
-
         
-        //ties listener to the scrolling action
-        
+        //ties listener to the scrolling action        
         var timer = 0;
         $(window).scroll( function () {
             if (timer) {
@@ -659,7 +777,7 @@
             //url = url.replace(/\+/, "%2b");
             //url = url.replace(/ /g, "+")      
             //url = "https://s3.amazonaws.com/pave_product_images/" + url   
-            url = '<img data-original="' + url + '" src="images/grey.gif" height="70" width="70" class = "left gameImage" style = "margin:20px;">'                    
+            url = '<img data-original="' + url + '" src="images/grey.gif" height="118" width="134" class = "left gameImage" style = "margin:5px;">'                    
             return new Handlebars.SafeString(url);
         });
 
@@ -667,7 +785,7 @@
             //url = url.replace(/\+/, "%2b");
             //url = url.replace(/ /g, "+")      
             //url = "https://s3.amazonaws.com/pave_product_images/" + url   
-            url = '<img data-original="' + url + '" src="images/grey.gif" height="70" width="70" class = "right gameImage" style = "margin:20px;">'    
+            url = '<img data-original="' + url + '" src="images/grey.gif" height="118" width="134" class = "right gameImage" style = "margin:5px;">'    
             return new Handlebars.SafeString(url);
         });
 
@@ -699,7 +817,7 @@
 
         Handlebars.registerHelper('getProfilePicture', function(friend) {           
             url = "https://graph.facebook.com/" + friend + "/picture"
-            url = "<img data-original='" + url + "' src='images/grey.gif' height='30' width='30' style = 'float:left;'>"   
+            url = "<img data-original='" + url + "' src='images/grey.gif' height='60' width='60' style = 'float:left;'>"   
             return new Handlebars.SafeString(url);
         });
 
@@ -721,6 +839,7 @@
             var button;
             if(answerAgreeStatuses !== null)
             {
+                answerAgreeStatuses = JSON.parse(answerAgreeStatuses);
                 console.log("answerAgreeStatuses Exists");
                 if(answerAgreeStatuses[key] == 1) //if it's an agree
                 {
@@ -741,30 +860,32 @@
         });
 
         Handlebars.registerHelper('getAnswerDisagreeButton', function(object) {  
-            console.log("In disagree ");                 
+            console.log("In disagree ");
             var key = object.question + object.friend + object.chosenProductID + object.otherProductID;
+
             console.log("key is " + key);
             //var hash = hash(key);
             var hash = key;
-            console.log("Hash is " + hash);
-            var answerDisagreeStatuses = localStorage.getItem("answerDisagreeStatuses");
+            //console.log("Hash is " + hash);
+            var answerAgreeStatuses = localStorage.getItem("answerAgreeStatuses");
             var button;
-            if(answerDisagreeStatuses !== null)
+            if(answerAgreeStatuses !== null)
             {
-                console.log("answerDisagreeStatuses Exists");
-                if(answerDisagreeStatuses[key] == 0) //if it's a disagree
+                answerAgreeStatuses = JSON.parse(answerAgreeStatuses);
+                console.log("answerAgreeStatuses Exists");
+                if(answerAgreeStatuses[key] == 0) //if it's a disagree
                 {
-                    button = '<button class = "answerDisagree">Disagreed</button>';
+                    button = '<button class = "answerDisgree">Disagreed</button>';
                 }
                 else
                 {
-                    button = '<button class = "answerDisagree">Disagree</button>';
+                    button = '<button class = "answerDisgree">Disagree</button>';
                 }
             }
             else
             {
-                console.log("answerDisagreeStatuses doesnt exist");
-                button = '<button class = "answerDisagree">Disagree</button>';
+                console.log("answerAgreeStatuses doesnt exist");
+                button = '<button class = "answerDisgree">Disagree</button>';
             }
             return new Handlebars.SafeString(button);
 
@@ -794,14 +915,11 @@
     </script>
     
 </head>
-<body ontouchstart="">
-
-    
-
+<body ontouchstart="">    
     <script id="Game-Handlebars-Template" type="text/x-handlebars-template">             
         {{#each Data}}
-            <div style = "height:120px; padding: 10px; display:block;" class = "row" data-all='{{getObject this}}'>
-                {{getProfilePicture friend}} <span style = "display:block; height: 30px;"> {{questionText}} </span>
+            <div style = "height:260px; padding: 5px; display:block;" class = "row" data-all='{{getObject this}}'>
+                {{getProfilePicture friend}} <span style = "display:block; height: 60px;"> {{questionText}} </span>
                 </br>
                 {{getLeftImage image1}}
                 {{getRightImage image2}}
@@ -815,8 +933,11 @@
         <div class = "profileHeading">
             <button id = "answersAboutMe">Answers about me</button>
             <button id = "insightsForMe">Insights for me</button>
+
         </div>
-        <div id = "profileFeeds"></div>        
+
+        <div id = "profileFeeds">
+        </div>        
     </script>
 
     <script id="AnswersAboutMe-Handlebars-Template" type="text/x-handlebars-template">             
@@ -884,7 +1005,7 @@
         </div>
     </div>
 
-    <div class = "login page">
+    <div class = "login">
         Hey, we're at login.
     </div>
 </body>
