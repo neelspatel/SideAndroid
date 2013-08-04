@@ -33,7 +33,7 @@
         var friendGenders = [];
         var friendMutualFriends = [];               
         var userInfo = {};
-        var gameRequest;
+        var gameRequest, trainingRequest, profileRequest;
         var onGame = false;
         var currentTab = "Game";
 
@@ -273,10 +273,13 @@
                 var Template = Handlebars.compile(Source);
 
                 //Generate some HTML code from the compiled Template
-                var HTML = Template({});                            
+                var HTML = Template({});                
+
                 //Replace the body section with the new code.      
                 console.log("Returned: " + HTML);                 
                 $('.content').html(HTML);
+
+                getAnswersAboutMe();
             });
             
             $("#toTraining").on("click", function() {
@@ -287,6 +290,19 @@
                 currentTab = "Training";
 
                 getTrainingQuestion();
+            });
+
+            //buttons in profile
+            $('.content').on('click tap', '#answersAboutMe', function() 
+            {
+                console.log("Clicked on answersAboutMe");         
+                getAnswersAboutMe();
+            });
+
+            $('.content').on('click tap', '#insightsForMe', function() 
+            {
+                console.log("Clicked on insightsForMe");
+                getInsightsForMe();
             });
 
         }
@@ -418,7 +434,7 @@
         function getTrainingFeed() {
             console.log("going to get training feed");
             //sets the data for tab2
-            gameRequest = $.getJSON( "http://54.214.234.140/data/traininggetlistquestions/1256912018/?nocache=" + (new Date).getTime(), function( json ) {                                   
+            trainingRequest = $.getJSON( "http://54.214.234.140/data/traininggetlistquestions/1256912018/?nocache=" + (new Date).getTime(), function( json ) {                                   
                 
                 localStorage.setItem("trainingFeed", JSON.stringify(json));
 
@@ -470,6 +486,45 @@
                 }
                                  
             }  
+        }
+
+        function getAnswersAboutMe() {            
+            //sets the data for tab0
+
+            //loads from localstorage first if possible
+            if(localStorage.getItem("answersAboutMe"))
+            {
+                if(currentTab == "Profile")                    
+                {
+                    //Get the Template from above
+                    var Source = document.getElementById("Profile-Handlebars-Template").textContent;                   
+                    //Compile the actual Template file
+                    var Template = Handlebars.compile(Source);                 
+                    //Generate some HTML code from the compiled Template
+                    var HTML = Template({ Data : JSON.parse(localStorage.getItem("answersAboutMe")) });                            
+                    //Replace the body section with the new code.
+                    console.log("Returned: " + HTML);                 
+                    $('#profileFeeds').append(HTML);
+                    
+                    $("img").lazyload({
+                        //container: $(".content")
+                        event: "scrollstop"
+                    });  
+                    
+                    //the purpose of this is to oad the initial images in view
+                    $(window).resize();       
+                } 
+            }
+            else
+            {
+                profileRequest = $.getJSON( "http://54.214.234.140/data/getallfeedobjects/1256912018/?nocache=" + (new Date).getTime(), function( json ) {         
+                
+                    localStorage.setItem("answersAboutMe", JSON.stringify(json));
+                    
+                    getAnswersAboutMe();
+                });
+            }
+            
         }
 
         function saveAnswer(friendID, chosen, wrong, question) {
@@ -550,7 +605,7 @@
                 
                 if($(window).scrollTop() + $(window).height() == $(".content").height()) {
                     getGameFeed();
-                    //console.log("at bottom");
+                    console.log("at bottom");
                 }
             }
             else
@@ -679,7 +734,7 @@
         Handlebars.registerHelper('getObject', function(context) {             
             //return new Handlebars.SafeString(JSON.stringify(context));
             return JSON.stringify(context);
-        });         
+        });                 
     </script>
     
 </head>
@@ -701,13 +756,17 @@
     </script>
 
     <script id="Profile-Header-Handlebars-Template" type="text/x-handlebars-template">             
-        <div class = "profileHeading">Header2 here! </div>
+        <div class = "profileHeading">
+            <button id = "answersAboutMe">Answers about me</button>
+            <button id = "insightsForMe">Insights for me</button>
+        </div>
+        <div id = "profileFeeds"></div>        
     </script>
 
     <script id="Profile-Handlebars-Template" type="text/x-handlebars-template">             
         {{#each Data}}
-            <div style = "height:120px; padding: 10px;" class = "row" data-all='{{getObject this}}'>
-                <span style = "background-color: rgb(16,154,220); color: white;">  {{getProfilePicture friend}} {{question}} </span>
+            <div style = "height:120px; padding: 10px; display:block;" class = "row" data-all='{{getObject this}}'>
+                {{getProfilePicture friend}} <span style = "display:block; height: 30px; background-color: rgb(16,154,220); color: white;"> {{question}} </span>
                 </br>
                 {{getAnswerAgreeButton this}} 
                 {{getLeftImageProfile chosenProduct}}
@@ -740,11 +799,9 @@
                 Statusbarhere
             </div>
         </div>
-
-        
         
         <div class="content">            
-            
+
         </div>
 
         <div class="footer" id = "bottomNav">
