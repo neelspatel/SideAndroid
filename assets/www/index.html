@@ -138,8 +138,8 @@
         };
 
         function logout() {
-            FB.logout(function(response) {
-                console.log("Logged out.");
+            FB.logout(function(response) {                
+                console.log("Logged out: " + JSON.stringify(response));
                 $(".login").show();
             });
         };
@@ -441,7 +441,7 @@
                     {
                         alert(json.text);
                     }
-                }
+                });
             }
         }
 
