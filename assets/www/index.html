@@ -114,8 +114,10 @@
                         init();                        
                     },
                     error: function(error){ 
-                        alert("error in creating new access token :("); 
-                        alert(JSON.stringify(error)); data.innerHTML = data.innerHTML + JSON.stringify(error) + " ";
+                        alert("Error in creating new access token. Sorry about that, trying again now!");
+
+                        //tries again
+                        sendNewAccessToken(accessToken);
                     }
                 });
             });                     
@@ -159,7 +161,7 @@
                 var Template = Handlebars.compile(Source);
                 var HTML = Template({ Data : data });                            
                 //Replace the body section with the new code.      
-                console.log("Returned: " + HTML);                 
+                //console.log("Returned: " + HTML);                 
                 $('.content').append(HTML);             
                 
                 $("img").lazyload({
@@ -385,7 +387,7 @@
                 var HTML = Template({});                
 
                 //Replace the body section with the new code.      
-                console.log("Returned: " + HTML);                 
+                //console.log("Returned: " + HTML);                 
                 $('.content').html(HTML);
 
                 getAnswersAboutMe();
@@ -532,7 +534,7 @@
                     //Generate some HTML code from the compiled Template
                     var HTML = Template({ Data : json });                            
                     //Replace the body section with the new code.      
-                    console.log("Returned: " + HTML);                 
+                    //console.log("Returned: " + HTML);                 
                     $('.content').append(HTML); 
                          
                     /**                           
@@ -585,7 +587,7 @@
                     //gets the first element, and also removes it
                     var first = list.shift();
 
-                    console.log("First item in training is " + JSON.stringify(first));
+                    //console.log("First item in training is " + JSON.stringify(first));
 
                     //saves the new list in localstorage
                     localStorage.setItem("trainingFeed", JSON.stringify(list));
@@ -597,7 +599,7 @@
                     //Generate some HTML code from the compiled Template
                     var HTML = Template({ Data : [first] });                            
                     //Replace the body section with the new code.      
-                    console.log("Returned: " + HTML);                 
+                    //console.log("Returned: " + HTML);                 
                     $('.content').html(HTML);   
                     $("img").lazyload({
                         //container: $(".content")
@@ -627,7 +629,7 @@
                     //Generate some HTML code from the compiled Template
                     var HTML = Template({ Data : JSON.parse(localStorage.getItem("answersAboutMe")) });                            
                     //Replace the body section with the new code.
-                    console.log("Returned: " + HTML);                 
+                    //console.log("Returned: " + HTML);                 
                     $('#profileFeeds').html(HTML);
                     
                     $("img").lazyload({
@@ -666,7 +668,7 @@
                     //Generate some HTML code from the compiled Template
                     var HTML = Template({ Data : JSON.parse(localStorage.getItem("insightsForMe")) });                            
                     //Replace the body section with the new code.
-                    console.log("Returned: " + HTML);                 
+                    //console.log("Returned: " + HTML);                 
                     $('#profileFeeds').html(HTML);
                     
                     $("img").lazyload({
@@ -810,12 +812,12 @@
         });
 
         Handlebars.registerHelper('getLeftImageTraining', function(url) {            
-            url = '<img data-original="' + url + '" src="images/grey.gif" height="70" width="70" class = "left trainingImage" style = "margin:20px;">'                    
+            url = '<img data-original="' + url + '" src="images/grey.gif" height="118" width="134" class = "left trainingImage" style = "margin:5px;">'                    
             return new Handlebars.SafeString(url);
         });
 
         Handlebars.registerHelper('getRightImageTraining', function(url) {              
-            url = '<img data-original="' + url + '" src="images/grey.gif" height="70" width="70" class = "right trainingImage" style = "margin:20px;">'    
+            url = '<img data-original="' + url + '" src="images/grey.gif" height="118" width="134" class = "right trainingImage" style = "margin:5px;">'    
             return new Handlebars.SafeString(url);
         });
 
@@ -827,15 +829,14 @@
 
         Handlebars.registerHelper('getProfilePictureTraining', function(friend) {           
             url = "https://graph.facebook.com/" + localStorage.getItem("sideFacebookID") + "/picture"
-            url = "<img data-original='" + url + "' src='images/grey.gif' height='30' width='30' style = 'float:left;'>"   
+            url = "<img data-original='" + url + "' src='images/grey.gif' height='60' width='60' style = 'float:left;'>"   
             return new Handlebars.SafeString(url);
         });
 
         Handlebars.registerHelper('getAnswerAgreeButton', function(object) {  
-            console.log("In agree ");
+            
             var key = object.question + object.friend + object.chosenProductID + object.otherProductID;
 
-            console.log("key is " + key);
             //var hash = hash(key);
             var hash = key;
             //console.log("Hash is " + hash);
@@ -844,7 +845,6 @@
             if(answerAgreeStatuses !== null)
             {
                 answerAgreeStatuses = JSON.parse(answerAgreeStatuses);
-                console.log("answerAgreeStatuses Exists");
                 if(answerAgreeStatuses[key] == 1) //if it's an agree
                 {
                     button = '<button class = "answerAgree">Agreed</button>';
@@ -864,10 +864,8 @@
         });
 
         Handlebars.registerHelper('getAnswerDisagreeButton', function(object) {  
-            console.log("In disagree ");
             var key = object.question + object.friend + object.chosenProductID + object.otherProductID;
 
-            console.log("key is " + key);
             //var hash = hash(key);
             var hash = key;
             //console.log("Hash is " + hash);
@@ -876,7 +874,7 @@
             if(answerAgreeStatuses !== null)
             {
                 answerAgreeStatuses = JSON.parse(answerAgreeStatuses);
-                console.log("answerAgreeStatuses Exists");
+
                 if(answerAgreeStatuses[key] == 0) //if it's a disagree
                 {
                     button = '<button class = "answerDisagree">Disagreed</button>';
@@ -946,7 +944,7 @@
 
     <script id="AnswersAboutMe-Handlebars-Template" type="text/x-handlebars-template">             
         {{#each Data}}
-            <div style = "height:260px; padding: 5px; display:block;" class = "row" data-all='{{getObject this}}'>
+            <div style = "height:160px; padding: 5px; display:block;" class = "row" data-all='{{getObject this}}'>
                 {{getProfilePicture friend}} <span class = "question"> {{question}} </span>
                 </br>
                 {{getAnswerAgreeButton this}} 
@@ -961,8 +959,8 @@
 
     <script id="Insights-Handlebars-Template" type="text/x-handlebars-template">             
         {{#each Data}}
-            <div style = "height:120px; padding: 10px; display:block;" class = "row" data-all='{{getObject this}}'>
-                <span style = "display:block; height: 30px;"> {{text}} </span>
+            <div style = "height:160px; padding: 10px; display:block;" class = "row" data-all='{{getObject this}}'>
+                <span class = "insightText"> {{text}} </span>
                 </br>
                 {{getInsightAgreeButton this}} 
                 {{getInsightImage url}}               
@@ -974,17 +972,16 @@
     </script>
 
     <script id="Training-Handlebars-Template" type="text/x-handlebars-template">             
-        
         {{#each Data}}
-            <div style = "height:120px; padding: 10px; display:block;" class = "row" data-all='{{getObject this}}'>
-                {{getProfilePictureTraining}} <span style = "display:block; height: 30px;"> {{questionText}} </span>
+            <div style = "height:260px; padding: 5px; display:block;" class = "row" data-all='{{getObject this}}'>
+                {{getProfilePictureTraining}} <span class = "question"> {{questionText}} </span>
                 </br>
                 {{getLeftImageTraining image1}}
                 {{getRightImageTraining image2}}
                 <input type="hidden" value='{{getObject this}}'>
                 <input class = "clickedyet" type="hidden" value='no'>
-            </div>  
-        {{/each}}      
+            </div>
+        {{/each}}     
     </script>
 
     <div class = "page">
@@ -1002,9 +999,9 @@
         <div class="footer" id = "bottomNav">
             
             
-                <a href="#" class="action" id = "toProfile"><i class="icon-new-message"></i>Profile</a>
-                <a href="#" class="action" id = "toGame"><i class="icon-new-message"></i>Game</a>
-                <a href="#" class="action" id = "toTraining"><i class="icon-new-message"></i>Training</a>        
+                <a href="#" class="footerIcon" id = "toProfile"><i class="icon-new-message"></i>Profile</a>
+                <a href="#" class="footerIcon" id = "toGame"><i class="icon-new-message"></i>Game</a>
+                <a href="#" class="footerIcon" id = "toTraining"><i class="icon-new-message"></i>Training</a>        
                     
         </div>
     </div>
