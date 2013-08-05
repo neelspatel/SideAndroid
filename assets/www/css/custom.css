@@ -153,7 +153,7 @@ html, body {
 	z-index: 100;
 
 	display: inline-block;
-	margin-left: 1px;
+	
 	font-weight: normal;
 	color: #f0f0f0;
 	font-size: 16px;
@@ -175,7 +175,7 @@ html, body {
 	z-index: 100;
 
 	display: inline-block;
-	margin-left: 1px;
+	
 	font-weight: normal;
 	color: #f0f0f0;
 	font-size: 16px;
@@ -232,4 +232,20 @@ html, body {
     left: 210px;
     top: 150px;
     z-index: 100;
+}
+
+.question {
+	display:block; 
+	height: 60px;
+	padding-left: 70px;
+
+	color: #303030;
+}
+
+.answerAgree {
+	font-size: 10px;
+}
+
+.answerDisagree {
+	font-size: 10px;
 }

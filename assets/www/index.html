@@ -124,7 +124,7 @@
         function login() {
             FB.login(function(response) {
                 if (response.authResponse) {
-                    console.log("Logging in now");
+                    console.log("Logging in now: " + JSON.stringify(response));
                     var accessToken = response["authResponse"]["accessToken"];
                     
                     //updates user params, and switches to the next screen
@@ -207,6 +207,8 @@
                     if(img.attr("class") == "left gameImage")
                     {
                         $(this).closest('.row').prepend("<div class = 'leftCheckMark'>Hey</div>");
+                        $(this).closest('.row').prepend("<div class = 'leftLabel'>" + (data.product1Count + 1) + " agree</div>");
+                        $(this).closest('.row').prepend("<div class = 'rightLabel'>" + data.product2Count + " disagree</div>");
 
                         console.log("Saving the left image");
                         saveAnswer(data.friend, data.product1, data.product2, data.currentQuestion);
@@ -214,6 +216,8 @@
                     else if(img.attr("class") == "right gameImage")
                     {
                         $(this).closest('.row').prepend("<div class = 'rightCheckMark'>Hey</div>");
+                        $(this).closest('.row').prepend("<div class = 'leftLabel'>" + data.product1Count + " disagree</div>");
+                        $(this).closest('.row').prepend("<div class = 'rightLabel'>" + (data.product2Count + 1) + " agree</div>");
 
                         console.log("Saving the right image");
                         saveAnswer(data.friend, data.product2, data.product1, data.currentQuestion);
@@ -280,7 +284,7 @@
                     answerAgreeStatuses[key] = 1;
                 }
 
-                $(this).html("Agreed set");
+                $(this).html("Agreed");
 
                 localStorage.setItem("answerAgreeStatuses", JSON.stringify(answerAgreeStatuses));
             });
@@ -304,7 +308,7 @@
                     answerAgreeStatuses[key] = 0;
                 }
 
-                $(this).html("Disagreed set");
+                $(this).html("Disagreed");
 
                 localStorage.setItem("answerAgreeStatuses", JSON.stringify(answerAgreeStatuses));
             });           
@@ -793,7 +797,7 @@
             //url = url.replace(/\+/, "%2b");
             //url = url.replace(/ /g, "+")      
             //url = "https://s3.amazonaws.com/pave_product_images/" + url   
-            url = '<img data-original="' + url + '" src="images/grey.gif" height="50" width="50" class = "left profileImage" style = "margin:5px;">'                    
+            url = '<img data-original="' + url + '" src="images/grey.gif" height="70" width="80" class = "left profileImage" style = "margin:5px;">'                    
             return new Handlebars.SafeString(url);
         });
 
@@ -801,7 +805,7 @@
             //url = url.replace(/\+/, "%2b");
             //url = url.replace(/ /g, "+")      
             //url = "https://s3.amazonaws.com/pave_product_images/" + url   
-            url = '<img data-original="' + url + '" src="images/grey.gif" height="50" width="50" class = "right profileImage" style = "margin:5px;">'    
+            url = '<img data-original="' + url + '" src="images/grey.gif" height="70" width="80" class = "right profileImage" style = "margin:5px;">'    
             return new Handlebars.SafeString(url);
         });
 
@@ -875,17 +879,17 @@
                 console.log("answerAgreeStatuses Exists");
                 if(answerAgreeStatuses[key] == 0) //if it's a disagree
                 {
-                    button = '<button class = "answerDisgree">Disagreed</button>';
+                    button = '<button class = "answerDisagree">Disagreed</button>';
                 }
                 else
                 {
-                    button = '<button class = "answerDisgree">Disagree</button>';
+                    button = '<button class = "answerDisagree">Disagree</button>';
                 }
             }
             else
             {
                 console.log("answerAgreeStatuses doesnt exist");
-                button = '<button class = "answerDisgree">Disagree</button>';
+                button = '<button class = "answerDisagree">Disagree</button>';
             }
             return new Handlebars.SafeString(button);
 
@@ -919,7 +923,7 @@
     <script id="Game-Handlebars-Template" type="text/x-handlebars-template">             
         {{#each Data}}
             <div style = "height:260px; padding: 5px; display:block;" class = "row" data-all='{{getObject this}}'>
-                {{getProfilePicture friend}} <span style = "display:block; height: 60px;"> {{questionText}} </span>
+                {{getProfilePicture friend}} <span class = "question"> {{questionText}} </span>
                 </br>
                 {{getLeftImage image1}}
                 {{getRightImage image2}}
@@ -942,8 +946,8 @@
 
     <script id="AnswersAboutMe-Handlebars-Template" type="text/x-handlebars-template">             
         {{#each Data}}
-            <div style = "height:120px; padding: 10px; display:block;" class = "row" data-all='{{getObject this}}'>
-                {{getProfilePicture friend}} <span style = "display:block; height: 30px; background-color: rgb(16,154,220); color: white;"> {{question}} </span>
+            <div style = "height:260px; padding: 5px; display:block;" class = "row" data-all='{{getObject this}}'>
+                {{getProfilePicture friend}} <span class = "question"> {{question}} </span>
                 </br>
                 {{getAnswerAgreeButton this}} 
                 {{getLeftImageProfile chosenProduct}}
